@@ -1,0 +1,8 @@
+
+
+<launch>
+
+    <node name="sensor" pkg="env" type="sensor.py" args="--test" respawn="true" />
+    <node name="USV_control" pkg="env" type="USV_control.py" args="--test" respawn="true" />
+
+</launch>
