@@ -9,16 +9,7 @@ class GainTuningGUI:
     def __init__(self, root):
         self.root = root
         self.root.title("Gain Tuning GUI")
-        self.gains = {
-            "/Y_Kp": 0.0,
-            "/Y_Kd": 0.0,
-            "/X_Kp": 0.0,
-            "/X_Kd": 0.0,
-            "/N_Kp": 0.0,
-            "/N_Kd": 0.0,
-            "/wpt": 0.0,
-            "/U_con": 0.0
-        }  # Dictionary to store added topics and gain values
+        self.gains = {}  # Dictionary to store added topics and gain values
         self.publishers = {}  # Dictionary to store publishers for each topic
         self.running = {}  # Dictionary to track whether each topic is running
         self.lock = threading.Lock()  # Lock for synchronization
@@ -46,7 +37,7 @@ class GainTuningGUI:
         self.topic_listbox = tk.Listbox(root, selectmode=tk.SINGLE, font=custom_font)
         self.topic_listbox.pack()
 
-        # Create widgets for default topics
+        # Default topics and their types
         self.default_topics = {
             "/Y_Kp": "Float64",
             "/Y_Kd": "Float64",
@@ -58,8 +49,14 @@ class GainTuningGUI:
             "/U_con": "Float64"
         }
 
+        # Add default topics to the running and publishers dictionaries
         for default_topic, message_type in self.default_topics.items():
-            self.create_default_gain_widgets(default_topic, message_type)
+            self.running[default_topic] = False
+            self.create_publisher(default_topic, message_type)
+
+        # Create widgets for default topics
+        for default_topic, message_type in self.default_topics.items():
+            self.create_gain_widgets(default_topic, message_type)
 
         self.rate = rospy.Rate(10)  # Set the publication rate to 10 Hz
 
@@ -80,13 +77,13 @@ class GainTuningGUI:
                 self.topic_listbox.insert(tk.END, topic_name)
                 rospy.loginfo("Added Topic: %s (Message Type: %s)", topic_name, message_type)
                 self.create_publisher(topic_name, message_type)
-                self.create_gain_widgets(topic_name)
+                self.create_gain_widgets(topic_name, message_type)
             else:
                 rospy.loginfo("Topic already exists: %s", topic_name)
         except ValueError:
             rospy.logerr("Invalid Topic Name")
 
-    def create_gain_widgets(self, topic_name):
+    def create_gain_widgets(self, topic_name, message_type):
         frame = tk.Frame(self.root)
         frame.pack()
 
@@ -96,27 +93,6 @@ class GainTuningGUI:
         gain_label.pack(side=tk.LEFT)
         gain_entry = tk.Entry(frame, font=custom_font)
         gain_entry.pack(side=tk.LEFT)
-        enter_button = tk.Button(frame, text="Enter", command=lambda t=topic_name: self.enter_adjustment(t, gain_entry), font=custom_font)
-        enter_button.pack(side=tk.LEFT)
-
-        start_button = tk.Button(frame, text="Start", command=lambda t=topic_name: self.start_topic(t), font=custom_font)
-        start_button.pack(side=tk.LEFT)
-
-        stop_button = tk.Button(frame, text="Stop", command=lambda t=topic_name: self.stop_topic(t), font=custom_font)
-        stop_button.pack(side=tk.LEFT)
-
-        self.running[topic_name] = False
-
-    def create_default_gain_widgets(self, topic_name, message_type):
-        frame = tk.Frame(self.root)
-        frame.pack()
-
-        custom_font = tkFont.Font(size=16)
-
-        gain_label = tk.Label(frame, text=f"Gain for {topic_name}:", font=custom_font)
-        gain_label.pack(side=tk.LEFT)
-        gain_entry = tk.Entry(frame, font=custom_font)
-        gain_entry.pack(side=tk.LEFT, padx=10)
         enter_button = tk.Button(frame, text="Enter", command=lambda t=topic_name: self.enter_adjustment(t, gain_entry), font=custom_font)
         enter_button.pack(side=tk.LEFT)
 
@@ -185,4 +161,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
