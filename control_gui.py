@@ -1,7 +1,7 @@
 import tkinter as tk
 import rospy
 from sensor_msgs.msg import Imu
-from std_msgs.msg import String, Int32, Float32  # Import Float32 message type
+from std_msgs.msg import String, Int32, Float32, Float32MultiArray  # Import Float32 message type
 import math
 
 class CompassGUI:
@@ -14,23 +14,39 @@ class CompassGUI:
 
         # Create frame for left side (USV Flag and Ship ID)
         left_frame = tk.Frame(root)
-        left_frame.pack(side="left", padx=10, pady=10)
+        left_frame.pack(side="left", padx=10, pady=20)
 
-        # Create label and variable for /usv_flag
-        self.usv_flag_label = tk.Label(left_frame, text="USV Flag:")
-        self.usv_flag_label.pack(side="top", anchor="w")  # Place label at the top left
+        self.line_length = 150
+        self.ship_distance = 0.0
+        self.rel_x = 0.0
+        self.rel_y = 0.0
+        self.ship_id = 0.0
+        self.arrow_thickness = 4.0
+        self.usv_flag = 0
+
+        # Create label for /usv_flag and variable for its value
+        self.usv_flag_label = tk.Label(left_frame, text="USV Flag : ")
+        self.usv_flag_label.grid(row=0, column=0, sticky="w")  # Place label at the top left
         self.usv_flag_var = tk.StringVar()
         self.usv_flag_var.set("N/A")
         self.usv_flag_value = tk.Label(left_frame, textvariable=self.usv_flag_var, anchor="w")
-        self.usv_flag_value.pack(side="top", fill="x", expand=True, anchor="w")  # Place value to the right, filling the width
+        self.usv_flag_value.grid(row=0, column=1, sticky="w")  # Place value to the right
 
-        # Create label and variable for Ship_ID
-        self.ship_id_label = tk.Label(left_frame, text="Ship ID:")
-        self.ship_id_label.pack(side="top", anchor="w")  # Place label below USV Flag
+        # Create label for Ship ID and variable for its value
+        self.ship_id_label = tk.Label(left_frame, text="  Ship ID   : ")
+        self.ship_id_label.grid(row=1, column=0, sticky="w")  # Place label below USV Flag
         self.ship_id_var = tk.StringVar()
         self.ship_id_var.set("N/A")
         self.ship_id_value = tk.Label(left_frame, textvariable=self.ship_id_var, anchor="w")
-        self.ship_id_value.pack(side="top", anchor="w")  # Place value below Ship ID label
+        self.ship_id_value.grid(row=1, column=1, sticky="w")  # Place value below Ship ID label
+
+        # Create label for Ship distance and variable for its value
+        self.ship_distance_label = tk.Label(left_frame, text="Ship Dis   : ")
+        self.ship_distance_label.grid(row=2, column=0, sticky="w")  # Place label below USV Flag
+        self.ship_distance_var = tk.StringVar()
+        self.ship_distance_var.set("N/A")
+        self.ship_distance_value = tk.Label(left_frame, textvariable=self.ship_distance_var, anchor="w")
+        self.ship_distance_value.grid(row=2, column=1, sticky="w")  # Place value below Ship ID label
 
         # Create frame for right side (Compass)
         right_frame = tk.Frame(root)
@@ -48,18 +64,28 @@ class CompassGUI:
         self.usv_flag_value.config(font=("Helvetica", self.font_size))
         self.ship_id_label.config(font=("Helvetica", self.font_size))
         self.ship_id_value.config(font=("Helvetica", self.font_size))
+        self.ship_distance_label.config(font=("Helvetica", self.font_size))
+        self.ship_distance_value.config(font=("Helvetica", self.font_size))
 
         # Subscribe to ROS topics
         rospy.Subscriber("/imu/data", Imu, self.update_own_heading)
         rospy.Subscriber("/desired_heading", String, self.update_desired_heading)
         rospy.Subscriber("/usv_flag", Int32, self.update_usv_flag)  # Subscribe to /usv_flag
         rospy.Subscriber("/wp_id", Float32, self.update_ship_id)  # Subscribe to /wp_id
+        rospy.Subscriber('/lidar_track', Float32MultiArray, self.sub_local_xy)
+        rospy.Subscriber('/global_track', Float32MultiArray, self.sub_global_xy)
 
         # Initialize headings and Ship_ID
         self.own_heading = 0.0
         self.desired_heading = "North"  # Initialize with a cardinal direction
         self.usv_flag = None
         self.ship_id = None
+        self.ship_heading = 0.0
+        self.ship_direction = 0.0
+        self.usv_x = 0.0
+        self.usv_y = 0.0
+        self.target_x = 0.0
+        self.target_y =0.0
 
         # Define angle mappings for cardinal directions
         self.angle_map = {
@@ -73,6 +99,8 @@ class CompassGUI:
         self.update_compass()
         self.update_usv_flag(None)  # Initialize with None
         self.update_ship_id(None)  # Initialize with None
+        # self.sub_local_xy(None)
+        # self.sub_global_xy(None)
 
     def update_own_heading(self, msg):
         # Extract orientation data from the Imu message
@@ -105,6 +133,41 @@ class CompassGUI:
             self.ship_id = msg.data
             self.ship_id_var.set(str(self.ship_id))
 
+    def sub_local_xy(self,msg):
+        if msg is not None:
+            if len(msg.data) > 3:
+
+                N = int(msg.data[0])
+                # print(msg.data)
+                for i in range(N):
+                    if self.ship_id == msg.data[1+6*i]:
+                        self.rel_x = msg.data[1+6*i+1]
+                        self.rel_y = msg.data[1+6*i+2]
+                        self.ship_heading = msg.data[1+6*i+5]
+                        self.ship_distance = math.sqrt(self.rel_x*self.rel_x + self.rel_y*self.rel_y)
+                        self.ship_distance_var.set(str(round(self.ship_distance,1)))
+                        
+                        self.update_compass()
+
+
+    def sub_global_xy(self,msg):
+        if msg is not None:
+            if len(msg.data) > 4:
+
+                N = int(msg.data[2])
+                # print(msg.data)
+                for i in range(N):
+                    if self.ship_id == msg.data[3+5*i]:
+                        self.target_x = msg.data[3+5*i+1]
+                        self.target_y = msg.data[3+5*i+2]
+                        self.usv_x = msg.data[0]
+                        self.usv_y = msg.data[1]
+                        self.ship_direction = math.atan2(self.target_y - self.usv_y, self.target_x - self.usv_x)
+                        # print(self.ship)
+                        # self.update_compass()
+                     
+                        
+                                            
     def quaternion_to_euler(self, quaternion):
         x, y, z, w = quaternion
         t0 = +2.0 * (w * x + y * z)
@@ -129,23 +192,49 @@ class CompassGUI:
         # Calculate the coordinates after rotation
         cx = self.canvas_width / 2  # Center X
         cy = self.canvas_height / 2  # Center Y
-        own_heading_x = cx + 40 * math.cos(0.5*math.pi)
-        own_heading_y = cy - 40 * math.sin(0.5*math.pi)
+        own_heading_x = cx + self.line_length * math.cos(0.5*math.pi)
+        own_heading_y = cy - self.line_length * math.sin(0.5*math.pi)
 
         # Draw the compass circle
         self.canvas.create_oval(50, 50, self.canvas_width - 50, self.canvas_height - 50)
 
-        # Draw the rotated own heading arrow
-        self.canvas.create_line(cx, cy, own_heading_x, own_heading_y, fill="blue")
+        for angle in range(12):
+            off_x = cx + self.line_length * math.cos(0.5*math.pi + (math.pi/6)*angle)
+            off_y = cy - self.line_length * math.sin(0.5*math.pi + (math.pi/6)*angle)
+            self.canvas.create_line(cx, cy, off_x, off_y,fill="#888888")
+
 
         # Calculate the angle difference between desired and own headings
         desired_heading_angle = self.angle_map.get(self.desired_heading, 0.0)
+        ship_heading_angle = self.angle_map.get(self.ship_heading, 0.0)
+        ship_direction_angle = self.angle_map.get(self.ship_direction, 0.0)
         angle_difference = desired_heading_angle - self.own_heading
 
         # Draw the desired heading arrow based on the angle difference
-        desired_heading_x = cx + 40 * math.cos(0.5*math.pi + angle_difference)
-        desired_heading_y = cy - 40 * math.sin(0.5*math.pi + angle_difference)
-        self.canvas.create_line(cx, cy, desired_heading_x, desired_heading_y, fill="red")
+        # desired_heading_x = cx + self.line_length * math.cos(0.5*math.pi + angle_difference)
+        # desired_heading_y = cy - self.line_length * math.sin(0.5*math.pi + angle_difference)
+        # self.canvas.create_line(cx, cy, desired_heading_x, desired_heading_y, fill="red",width=self.arrow_thickness)
+
+        # Draw the rotated own heading arrow
+        self.canvas.create_line(cx, cy, own_heading_x, own_heading_y, fill="blue", width=self.arrow_thickness)
+
+        if self.usv_flag is not None:
+            if self.usv_flag == 3:
+
+                ship_direction_x = cx + self.line_length * math.cos(0.5*math.pi + self.ship_direction + rotation_angle)
+                ship_direction_y = cy - self.line_length * math.sin(0.5*math.pi + self.ship_direction + rotation_angle)
+                self.canvas.create_line(cx, cy, ship_direction_x, ship_direction_y, fill="green",width=self.arrow_thickness)
+                
+
+        # Draw the ship heading
+        if self.usv_flag is not None:
+            if self.usv_flag > 3:
+                ship_heading_x = cx + self.line_length * math.cos(0.5*math.pi + self.ship_heading+rotation_angle)
+                ship_heading_y = cy - self.line_length * math.sin(0.5*math.pi + self.ship_heading+rotation_angle)
+                self.canvas.create_line(cx, cy, ship_heading_x, ship_heading_y, fill="green",width=self.arrow_thickness)
+                ship_heading_x = cx - self.line_length * math.cos(0.5*math.pi + self.ship_heading+rotation_angle)
+                ship_heading_y = cy + self.line_length * math.sin(0.5*math.pi + self.ship_heading+rotation_angle)
+                self.canvas.create_line(cx, cy, ship_heading_x, ship_heading_y, fill="green",width=self.arrow_thickness)
 
 if __name__ == "__main__":
     root = tk.Tk()
