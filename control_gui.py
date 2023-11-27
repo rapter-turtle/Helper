@@ -5,7 +5,7 @@ from std_msgs.msg import String, Int32, Float32, Float32MultiArray  # Import Flo
 import math
 
 class CompassGUI:
-    def __init__(self, root, canvas_width=400, canvas_height=400, font_size=12):
+    def __init__(self, root, canvas_width=800, canvas_height=800, font_size=20):
         self.root = root
         self.root.title("Compass GUI")
 
@@ -14,14 +14,14 @@ class CompassGUI:
 
         # Create frame for left side (USV Flag and Ship ID)
         left_frame = tk.Frame(root)
-        left_frame.pack(side="left", padx=10, pady=20)
+        left_frame.pack(side="left", padx=20, pady=40)
 
-        self.line_length = 150
+        self.line_length = 350
         self.ship_distance = 0.0
         self.rel_x = 0.0
         self.rel_y = 0.0
         self.ship_id = 0.0
-        self.arrow_thickness = 4.0
+        self.arrow_thickness = 8.0
         self.usv_flag = 0
 
         # Create label for /usv_flag and variable for its value
@@ -99,8 +99,6 @@ class CompassGUI:
         self.update_compass()
         self.update_usv_flag(None)  # Initialize with None
         self.update_ship_id(None)  # Initialize with None
-        # self.sub_local_xy(None)
-        # self.sub_global_xy(None)
 
     def update_own_heading(self, msg):
         # Extract orientation data from the Imu message
@@ -138,7 +136,6 @@ class CompassGUI:
             if len(msg.data) > 3:
 
                 N = int(msg.data[0])
-                # print(msg.data)
                 for i in range(N):
                     if self.ship_id == msg.data[1+6*i]:
                         self.rel_x = msg.data[1+6*i+1]
@@ -149,13 +146,11 @@ class CompassGUI:
                         
                         self.update_compass()
 
-
     def sub_global_xy(self,msg):
         if msg is not None:
             if len(msg.data) > 4:
 
                 N = int(msg.data[2])
-                # print(msg.data)
                 for i in range(N):
                     if self.ship_id == msg.data[3+5*i]:
                         self.target_x = msg.data[3+5*i+1]
@@ -163,11 +158,7 @@ class CompassGUI:
                         self.usv_x = msg.data[0]
                         self.usv_y = msg.data[1]
                         self.ship_direction = math.atan2(self.target_y - self.usv_y, self.target_x - self.usv_x)
-                        # print(self.ship)
-                        # self.update_compass()
                      
-                        
-                                            
     def quaternion_to_euler(self, quaternion):
         x, y, z, w = quaternion
         t0 = +2.0 * (w * x + y * z)
@@ -203,28 +194,20 @@ class CompassGUI:
             off_y = cy - self.line_length * math.sin(0.5*math.pi + (math.pi/6)*angle)
             self.canvas.create_line(cx, cy, off_x, off_y,fill="#888888")
 
-
         # Calculate the angle difference between desired and own headings
         desired_heading_angle = self.angle_map.get(self.desired_heading, 0.0)
         ship_heading_angle = self.angle_map.get(self.ship_heading, 0.0)
         ship_direction_angle = self.angle_map.get(self.ship_direction, 0.0)
         angle_difference = desired_heading_angle - self.own_heading
 
-        # Draw the desired heading arrow based on the angle difference
-        # desired_heading_x = cx + self.line_length * math.cos(0.5*math.pi + angle_difference)
-        # desired_heading_y = cy - self.line_length * math.sin(0.5*math.pi + angle_difference)
-        # self.canvas.create_line(cx, cy, desired_heading_x, desired_heading_y, fill="red",width=self.arrow_thickness)
-
         # Draw the rotated own heading arrow
         self.canvas.create_line(cx, cy, own_heading_x, own_heading_y, fill="blue", width=self.arrow_thickness)
 
         if self.usv_flag is not None:
             if self.usv_flag == 3:
-
                 ship_direction_x = cx + self.line_length * math.cos(0.5*math.pi + self.ship_direction + rotation_angle)
                 ship_direction_y = cy - self.line_length * math.sin(0.5*math.pi + self.ship_direction + rotation_angle)
                 self.canvas.create_line(cx, cy, ship_direction_x, ship_direction_y, fill="green",width=self.arrow_thickness)
-                
 
         # Draw the ship heading
         if self.usv_flag is not None:
@@ -238,5 +221,5 @@ class CompassGUI:
 
 if __name__ == "__main__":
     root = tk.Tk()
-    app = CompassGUI(root, canvas_width=400, canvas_height=400, font_size=16)
+    app = CompassGUI(root, canvas_width=800, canvas_height=800, font_size=20)
     root.mainloop()
