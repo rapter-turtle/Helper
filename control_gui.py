@@ -137,12 +137,14 @@ class CompassGUI:
 
                 N = int(msg.data[0])
                 for i in range(N):
-                    if self.ship_id == msg.data[1+6*i]:
-                        self.rel_x = msg.data[1+6*i+1]
-                        self.rel_y = msg.data[1+6*i+2]
-                        self.ship_heading = msg.data[1+6*i+5]
-                        self.ship_distance = math.sqrt(self.rel_x*self.rel_x + self.rel_y*self.rel_y)
-                        self.ship_distance_var.set(str(round(self.ship_distance,1)))
+                    if self.ship_id == msg.data[1+8*i]:
+                        self.rel_x = msg.data[1+8*i+1]
+                        self.rel_y = msg.data[1+8*i+2]
+                        self.ship_heading = msg.data[1+8*i+5]
+
+                        if 120 > math.sqrt(self.rel_x*self.rel_x + self.rel_y*self.rel_y):
+                            self.ship_distance = math.sqrt(self.rel_x*self.rel_x + self.rel_y*self.rel_y)
+                            self.ship_distance_var.set(str(round(self.ship_distance,1)))
                         
                         self.update_compass()
 
@@ -159,6 +161,10 @@ class CompassGUI:
                         self.usv_y = msg.data[1]
                         self.ship_direction = math.atan2(self.target_y - self.usv_y, self.target_x - self.usv_x)
                      
+                        if 120 < math.sqrt((self.target_x - self.usv_x)**2 + (self.target_y - self.usv_y)**2):
+                            self.ship_distance = math.sqrt((self.target_x - self.usv_x)**2 + (self.target_y - self.usv_y)**2)
+                            self.ship_distance_var.set(str(round(self.ship_distance,1)))
+
     def quaternion_to_euler(self, quaternion):
         x, y, z, w = quaternion
         t0 = +2.0 * (w * x + y * z)
@@ -204,14 +210,14 @@ class CompassGUI:
         self.canvas.create_line(cx, cy, own_heading_x, own_heading_y, fill="blue", width=self.arrow_thickness)
 
         if self.usv_flag is not None:
-            if self.usv_flag == 3:
+            if self.usv_flag == 3 or self.usv_flag == 6:
                 ship_direction_x = cx + self.line_length * math.cos(0.5*math.pi + self.ship_direction + rotation_angle)
                 ship_direction_y = cy - self.line_length * math.sin(0.5*math.pi + self.ship_direction + rotation_angle)
                 self.canvas.create_line(cx, cy, ship_direction_x, ship_direction_y, fill="green",width=self.arrow_thickness)
 
         # Draw the ship heading
         if self.usv_flag is not None:
-            if self.usv_flag > 3:
+            if self.usv_flag == 4 or self.usv_flag == 7 or self.usv_flag == 5 :
                 ship_heading_x = cx + self.line_length * math.cos(0.5*math.pi + self.ship_heading+rotation_angle)
                 ship_heading_y = cy - self.line_length * math.sin(0.5*math.pi + self.ship_heading+rotation_angle)
                 self.canvas.create_line(cx, cy, ship_heading_x, ship_heading_y, fill="green",width=self.arrow_thickness)
