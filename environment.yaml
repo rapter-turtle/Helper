@@ -1,0 +1,59 @@
+session_name: Environment
+windows:
+  - window_name: dev window
+    layout: tiled
+    shell_command_before:
+      - cd ~/ # run as a first command in all panes
+    panes:
+      - shell_command: 
+          - source /opt/ros/noetic/setup.bash
+          - roscore
+      - shell_command:
+          - source ${ROS1_INSTALL_PATH}/setup.bash
+          - source ${ROS2_INSTALL_PATH}/setup.bash
+          - export ROS_MASTER_URI=http://localhost:11311
+          - ros2 run ros1_bridge dynamic_bridge --bridge-all-topics
+      - shell_command:
+          - source /opt/ros/galactic/setup.bash
+          - source ~/mbzirc_ws/install/local_setup.bash
+          - ros2 launch mbzirc_ros competition_local.launch.py ign_args:="-v 4 -r coast.sdf"
+      - shell_command:
+          - source /opt/ros/galactic/setup.bash
+          - source ~/mbzirc_ws/install/local_setup.bash
+          - ros2 launch mbzirc_ign spawn.launch.py name:=usv world:=coast model:=usv x:=-1462 y:=-16.5 z:=0.3 R:=0 P:=0 Y:=0
+      - shell_command:
+          - source /opt/ros/galactic/setup.bash
+          - source ~/mbzirc_ws/install/local_setup.bash
+          - ros2 run ros_ign_bridge parameter_bridge /world/coast/pose/info@tf2_msgs/msg/TFMessage@ignition.msgs.Pose_V
+
+      - shell_command:
+          - source /opt/ros/noetic/setup.bash
+          - source ~/catkin_ws/devel/setup.bash
+          - cd /home/kiyong/catkin_ws/src/env/script
+          - python3 sensor.py
+
+      - shell_command:
+          - source /opt/ros/noetic/setup.bash
+          - source ~/catkin_ws/devel/setup.bash
+          - cd /home/kiyong/catkin_ws/src/env/script
+          - python3 USV_control.py
+    #   - shell_command:
+    #       - source /opt/ros/noetic/setup.bash
+    #       - source ~/catkin_ws/devel/setup.bash
+    #       - cd /home/kiyong/catkin_ws/src/env/script
+    #       - python3 MP.py
+      - shell_command:
+          - source /opt/ros/noetic/setup.bash
+          - source ~/catkin_ws/devel/setup.bash
+          - cd /home/kiyong/catkin_ws/src
+          - python3 Gain_tuner.py
+      - shell_command:
+          - source /opt/ros/noetic/setup.bash
+          - source ~/catkin_ws/devel/setup.bash
+          - cd /home/kiyong/catkin_ws/src
+          - python3 control_gui.py
+      - shell_command:
+          - source /opt/ros/noetic/setup.bash
+          - source ~/catkin_ws/devel/setup.bash
+          - cd /home/kiyong/catkin_ws/src/env/script
+          - python3 Ship_detection_emul.py
