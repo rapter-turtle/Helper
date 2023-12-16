@@ -1,0 +1,2 @@
+sensor_msgs/Image radar_img
+uint32 cellsize

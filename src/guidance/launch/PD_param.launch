@@ -1,0 +1,11 @@
+
+
+<launch>
+
+    <param name="V" type="double" value="100" />
+    <param name="r" type="double" value="10" />
+    <param name="K" type="double" value="1300" />
+    <param name="Kd" type="double" value="400" />
+    <param name="Ki" type="double" value="0" />
+
+</launch>
