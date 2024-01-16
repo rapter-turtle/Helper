@@ -41,12 +41,20 @@ class GainTuningGUI:
         self.default_topics = {
             "/Y_Kp": "Float64",
             "/Y_Kd": "Float64",
+            "/Y_Ki": "Float64",
             "/X_Kp": "Float64",
             "/X_Kd": "Float64",
             "/N_Kp": "Float64",
             "/N_Kd": "Float64",
             "/wpt": "Float64",
-            "/U_con": "Float64"
+            "/U_con": "Float64",
+            "/con_range": "Float64",
+            "/bound": "Float64",
+            "/wpt_distance": "Float64",
+            "/delta_sp": "Float64",
+            "/gain": "Float64",
+            "/T_max": "Float64",
+            "/T_mas_I": "Float64"
         }
 
         # Add default topics to the running and publishers dictionaries
